@@ -14,7 +14,14 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 class ImageFolderWithName(datasets.ImageFolder):
     def __getitem__(self, index: int):
         path, target = self.samples[index]
-        sample = self.loader(path)
+        sample = self                         transforms.RandomHorizontalFlip(),
+                                     transforms.ToTensor(),
+                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
+        "val": transforms.Compose([transforms.Resize((224, 224)),
+                                   transforms.ToTensor(),
+                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])}
+
+    train_data.loader(path)
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
@@ -27,14 +34,7 @@ def main():
     #photoDataProcessor
     data_transform = {
         "train": transforms.Compose([transforms.RandomResizedCrop(224),
-                                     transforms.RandomHorizontalFlip(),
-                                     transforms.ToTensor(),
-                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]),
-        "val": transforms.Compose([transforms.Resize((224, 224)),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])}
-
-    train_dataset = ImageFolderWithName(root="/root/autodl-tmp/dataset/skinDisease_split/train",
+            set = ImageFolderWithName(root="/root/autodl-tmp/dataset/skinDisease_split/train",
                                          transform=data_transform["train"])
     train_num = len(train_dataset)
 

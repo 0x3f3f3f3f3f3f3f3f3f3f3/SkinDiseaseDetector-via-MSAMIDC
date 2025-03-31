@@ -675,8 +675,35 @@ class MLP(nn.Module):
         x=self.MLP(x)
         nn.Linear(self.prev_dim, self.output_dim)
         return x
+class FeatureSelector(nn.Module):
+    def __init__(self, input_dim, lambda_reg=0.01):
+        super().__init__()
+        self.weights = nn.Parameter(torch.ones(input_dim))
+        self.lambda_reg = lambda_reg
 
+    def forward(self, x):
+        return x * self.weights
 
+    def regularization_loss(self):
+        return self.lambda_reg * torch.norm(self.weights, p=1)
+
+class DeepLasso(nn.Module):
+    def __init__(self, input_dim, output_dim, hidden_dim=64, lambda_reg=0.01):
+        super().__init__()
+        self.selector = FeatureSelector(input_dim, lambda_reg)
+        self.mlp = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, output_dim)
+        )
+
+    def forward(self, x):
+        x = self.selector(x)
+        return self.mlp(x)
+
+    def total_loss(self, pred, target):
+        task_loss = F.cross_entropy(pred, target)
+        return task_loss + self.selector.regularization_loss()
 class VSSM(nn.Module):
     def __init__(self, MLP_input_dim, MLP_hidden_dims,patch_size=4, in_chans=3, num_classes=1000, depths=[2, 2, 4, 2], depths_decoder=[2, 9, 2, 2],
                  dims=[96,192,384,768], dims_decoder=[768, 384, 192, 96], d_state=16, drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
@@ -722,16 +749,8 @@ class VSSM(nn.Module):
             )
             self.layers.append(layer)
         # MLP
-        MLP_Layers = []
-        self.prev_dim = MLP_input_dim
-        self.output_dim = num_classes
-        for hdim in MLP_hidden_dims:
-            MLP_Layers.append(nn.Linear(self.prev_dim, hdim))
-            MLP_Layers.append(nn.ReLU())
-            self.prev_dim = hdim
-
-        self.MLP = nn.Sequential(*MLP_Layers)
-
+        self.prev_dim=20
+        self.DeepLasso=DeepLasso(input_dim=45, output_dim=self.prev_dim, lambda_reg=0.05)
 
         # self.norm = norm_layer(self.num_features)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
@@ -776,7 +795,7 @@ class VSSM(nn.Module):
         x = torch.flatten(x,start_dim=1)
         # print(x)
         text = torch.nan_to_num(text, nan=-1.0)
-        text=self.MLP(text)
+        text=self.DeepLasso(text)
         C = torch.cat([x, text], dim=1)
         C = self.head(C)
         return C
