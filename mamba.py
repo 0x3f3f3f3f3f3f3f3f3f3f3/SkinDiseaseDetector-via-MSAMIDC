@@ -658,23 +658,7 @@ class VSSLayer_up(nn.Module):
         return x
 
 
-class MLP(nn.Module):
-    def __init__(self, input_dim, hidden_dims, output_dim):
-        super(MLP, self).__init__()
-        MLP_Layers = []
-        self.prev_dim = input_dim
-        self.output_dim = output_dim
-        for hdim in hidden_dims:
-            MLP_Layers.append(nn.Linear(self.prev_dim, hdim))
-            MLP_Layers.append(nn.ReLU())
-            self.prev_dim = hdim
 
-        self.MLP = nn.Sequential(*MLP_Layers)
-
-    def forward(self, x):
-        x=self.MLP(x)
-        nn.Linear(self.prev_dim, self.output_dim)
-        return x
 class FeatureSelector(nn.Module):
     def __init__(self, input_dim, lambda_reg=0.01):
         super().__init__()
@@ -748,7 +732,6 @@ class VSSM(nn.Module):
                 use_checkpoint=use_checkpoint,
             )
             self.layers.append(layer)
-        # MLP
         self.prev_dim=20
         self.DeepLasso=DeepLasso(input_dim=45, output_dim=self.prev_dim, lambda_reg=0.05)
 
